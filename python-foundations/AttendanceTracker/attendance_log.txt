@@ -1,0 +1,11 @@
+--- Course Attendance Log --- 
+1. Aarav Sharma - Present 
+2. Priya Koirala - Absent 
+3. Rohan Thapa - Present 
+4. Sneha Adhikari - Late 
+5. Manish Gurung - Present 
+6. Kritika Shrestha - Absent 
+7. Sajan Lama - Present 
+8. Nisha Rai - Present 
+9. Dipesh KC - Late 
+10. Alisha Tamang - Present 
