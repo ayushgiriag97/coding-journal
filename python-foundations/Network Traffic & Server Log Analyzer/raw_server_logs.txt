@@ -1,0 +1,6 @@
+INFO - 10:01 - User login successful
+WARNING - 10:05 - High memory usage detected
+ERROR - 10:07 - Database connection failed
+INFO - 10:10 - User logout successful
+ERROR - 10:12 - API Gateway timeout exception
+INFO - 10:15 - Background worker completed
