@@ -1,0 +1,8 @@
+=== CRITICAL REPORT ===
+
+Total Lines Processed: 6
+Total Errors Logged: 2
+
+Detected Errors:
+1. [10:07] Database connection failed
+2. [10:12] API Gateway timeout exception
