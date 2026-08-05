@@ -2,6 +2,8 @@
 #Use list data type to store the question and their correct answers.
 #Display the final amount the person is taking home after playing the game.
 
+# KBC-style Quiz Game
+
 list_qns = [
     "Q1: Which is the tallest mountain in the world?\n\nA:KanchanJunga   B:Macchapuchre\nC:Mt.Everest     D:Mt.K2\n",
     "Q2: Which is the largest country in the world?\n\nA:Nepal   B:India\nC:China   D:Russia\n",
@@ -16,14 +18,31 @@ list_qns = [
 ]
 
 list_ans = ["C", "D", "A", "C", "B", "A", "B", "A", "B", "B"]
-money=250
+
+money = 250
+valid_options = {"A", "B", "C", "D"}
+
+print("🎉 Welcome to KBC! 🎉")
+print("Starting prize money: ₹250\n")
+
 for index in range(len(list_qns)):
     print(list_qns[index])
-    answer=input("Enter Answer (Eg.A,B,C,D) : ")
-    
-    if answer==list_ans[index]:
-        money*=2
-        print(f"Correct answer, You won {money}")
+
+    while True:  # input validation loop
+        answer = input("Enter Answer (A, B, C, D): ").strip().upper()
+
+        if answer in valid_options:
+            break
+        else:
+            print("⚠️ Invalid input! Please enter only A, B, C, or D.")
+
+    if answer == list_ans[index]:
+        money *= 2
+        print(f"✅ Correct answer! You now have ₹{money}\n")
     else:
-        print(f"You lost the amount you are taking home is {money}")
+        print(f"❌ Wrong answer! You take home ₹{money}\n")
         break
+else:
+    print(f"🎊 Congratulations! You answered all questions correctly and won ₹{money} 🎊")
+
+print("Thanks for playing KBC!")
