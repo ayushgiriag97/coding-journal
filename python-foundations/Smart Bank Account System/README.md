@@ -6,16 +6,31 @@ A secure, terminal-based banking application built in Python that demonstrates c
 
 ## 🚀 Key Features & Architecture
 
-### 1. Robust Encapsulation & Data Protection
-* **Protected Internal Attributes (`_balance`, `_username`, `_password`):** Prevents direct, uncontrolled modification of critical financial state from outside the object boundary.
-* **Property Decorators (`@property` & `@balance.setter`):** Implements managed getter and setter attributes to enforce real-time data validation (e.g., blocking negative balance assignments) without sacrificing clean attribute-access syntax.
+### 1. Encapsulation & Data Protection
+* **Protected Attributes (`_balance`, `_username`, `_password`):** Prevents uncontrolled modification of critical state.
+* **Property Decorators:** Enforces validation (e.g., blocking negative balances) with clean syntax.
 
-### 2. Guarded Financial Operations
-* **Validated Deposits:** Checks transaction inputs to ensure only positive monetary amounts increment the balance.
-* **Overdraft Prevention:** Validates available funds during withdrawal attempts to ensure accounts cannot fall below `$0.00`.
+### 2. Financial Operations
+* **Validated Deposits & Withdrawals:** Ensures only positive deposits and prevents overdrafts.
+* **Interest System:** Preview monthly earnings and auto-apply interest every 30 days (handles multiple months if overdue).
+* **Transaction History:** Logs deposits, withdrawals, and interest applications.
+* **Safe Input Validation:** Prevents crashes on invalid numeric input.
 
-### 3. Authentication & Session State Management
-* **Credential Verification:** Uses dictionary lookup ($O(1)$ constant time complexity) to validate usernames and passwords before constructing account objects.
-* **State Persistence via Session Loop:** Keeps the active user object persistent in memory within an interactive `while` loop, allowing continuous balance checks, deposits, and withdrawals without resetting state between actions.
+### 3. Authentication & Session Management
+* **Credential Verification:** Dictionary lookup for constant-time validation.
+* **Password Security:** Hidden input via `getpass`.
+* **Persistent Session Loop:** Keeps user logged in for continuous operations.
 
 ---
+
+## 📜 Example Menu
+--- BANK MENU ---
+
+1. Check Balance  
+2. Deposit  
+3. Withdraw  
+4. Preview Monthly Interest  
+5. Apply Monthly Interest (Auto after 30 days)  
+6. View Transaction History  
+7. Exit
+
