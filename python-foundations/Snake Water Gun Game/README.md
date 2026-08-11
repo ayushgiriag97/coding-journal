@@ -14,6 +14,8 @@ A feature-packed terminal implementation of the classic **Snake, Water, Gun** ga
 * **Custom Series Formats:** Choose between **Best of 1**, **Best of 3**, or **Best of 5** series modes. The game dynamically calculates majority wins needed to lock in a series victory.
 * **Robust Input Validation:** Continuous validation loops for start prompts, format selections, and player inputs to gracefully handle invalid/nonsense inputs.
 * **Live Scoreboard Tracking:** Tracks scores dynamically across rounds until a series winner is determined.
+* **Replay Option:** After a series ends, players can immediately restart without re-running the program.
+* **Modular Functions:** Core logic (round play, input handling, format selection) is encapsulated into reusable functions for cleaner structure and easier maintenance.
 
 ---
 
