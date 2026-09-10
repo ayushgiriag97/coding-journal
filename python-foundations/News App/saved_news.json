@@ -1,0 +1,41 @@
+[
+    {
+        "source": {
+            "id": "the-washington-post",
+            "name": "The Washington Post"
+        },
+        "author": "Izin Akhabau",
+        "title": "Wednesday briefing: Iran retaliates; the best way to exercise; New Hampshire primaries; and more - The Washington Post",
+        "description": "Catch up in minutes.",
+        "url": "https://www.washingtonpost.com/the-seven/2026/09/09/7-things-know-wednesday-september-8/",
+        "urlToImage": "https://www.washingtonpost.com/wp-apps/imrs.php?src=https://cloudfront-us-east-1.images.arcpublishing.com/wapo/CZTKZYRKDRHZLNWKNCHILEGQ3U.png&w=1440",
+        "publishedAt": "2026-09-09T11:44:18Z",
+        "content": "Iran sent a wave of missiles to a U.S. base in Jordan."
+    },
+    {
+        "source": {
+            "id": "talksport",
+            "name": "TalkSport"
+        },
+        "author": "Josh Fordham",
+        "title": "Manchester United release statement after journalists 'banned' from press conference",
+        "description": "Manchester United explained why four journalists were banned from an Erik ten Hag press conference on Tuesday.Sky Sports chief reporter Kaveh Solhekho",
+        "url": "https://talksport.com/football/1666142/man-utd-journalists-banned-press-conference-erik-ten-hag/",
+        "urlToImage": "https://talksport.com/wp-content/uploads/sites/5/2023/10/228f511f-c84a-48e8-b067-5c7277d90984.jpg?strip=all&quality=100&w=1920&h=1080&crop=1",
+        "publishedAt": "2023-12-05T12:12:06Z",
+        "content": "Manchester United explained why four journalists were banned from an Erik ten Hag press conference on Tuesday.\r\nSky Sports chief reporter Kaveh Solhekhol, the Manchester Evening News' Samuel Luckhurs\u2026 [+2999 chars]"
+    },
+    {
+        "source": {
+            "id": "bloomberg",
+            "name": "Bloomberg"
+        },
+        "author": "Rthvika Suvarna",
+        "title": "The $28,000 Course for an AI Job Nobody Quite Understands Yet",
+        "description": "Business schools are racing to prepare executives for the newest C-suite role, even as companies are still figuring out what chief AI officers will do.",
+        "url": "https://www.bloomberg.com/news/articles/2026-08-21/how-executives-are-training-to-become-chief-ai-officers",
+        "urlToImage": "https://assets.bwbx.io/images/users/iqjWHBFdfxIU/ictbypm8a040/v0/-999x-999.gif",
+        "publishedAt": "2026-08-21T06:00:02+00:00",
+        "content": "Nancy Schieber spent 12 hours developing a 65-page artificial intelligence transformation strategy modeled on Ogilvy, the advertising agency where she worked for 13 years, as part of her University o\u2026 [+81 chars]"
+    }
+]
