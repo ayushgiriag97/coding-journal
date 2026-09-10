@@ -13,84 +13,101 @@ BASE_URL = "https://newsapi.org/v2"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SAVED_ARTICLES_FILE = os.path.join(SCRIPT_DIR, "saved_news.json")
 
+# Allowed NewsAPI Top-Headline Categories
+VALID_CATEGORIES = ("business", "entertainment", "general", "health", "science", "sports", "technology")
+
 # Global Text-to-Speech Queue
 speech_queue = []
+
+
+# ==========================================
+# REUSABLE INPUT VALIDATION HELPERS 
+# ==========================================
+def get_user_choice_in_range(prompt, min_val, max_val):
+    """Safely prompts user for an integer within [min_val, max_val]. Returns None if invalid."""
+    try:
+        choice = int(input(prompt).strip())
+        if min_val <= choice <= max_val:
+            return choice
+        print(f"❌ Selection out of range. Choose between {min_val} and {max_val}.")
+    except ValueError:
+        print("❌ Invalid input. Please enter a valid number.")
+    return None
+
+
+def fetch_news_from_api(endpoint, params):
+    """Centralized API fetch helper handling status checks and exceptions safely."""
+    url = f"{BASE_URL}/{endpoint}"
+    params["apiKey"] = API_KEY
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if data.get("status") == "error":
+            print(f"❌ API Error: {data.get('message', 'Unknown error occurred.')}")
+            return []
+            
+        return data.get("articles", [])
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Network or Connection Error: {e}")
+        return []
+
+
+def print_article_list(articles):
+    """Prints a formatted numbered list of articles."""
+    for idx, article in enumerate(articles, start=1):
+        title = article.get('title', 'No Title')
+        source = article.get('source', {}).get('name', 'Unknown Source')
+        print(f"[{idx}] {title}\n    Source: {source}\n")
 
 
 # ==========================================
 # NEWS FETCHING FUNCTIONS
 # ==========================================
 def today_top_headlines():
-    """Fetches and displays the top 3 headlines from NewsAPI."""
-    url = f"{BASE_URL}/top-headlines"
-    params = {
-        "country": "us",
-        "pageSize": 3,
-        "apiKey": API_KEY
-    }
-    try:
-        response = requests.get(url, params=params)
-        data = response.json()
-        articles = data.get("articles", [])
-        
-        print("\n" + "=" * 50)
-        print("           TODAY'S TOP HEADLINES 🌐")
-        print("=" * 50)
-        
-        if not articles:
-            print("No top headlines found.")
-            return []
-
-        for idx, article in enumerate(articles, start=1):
-            print(f"[{idx}] {article.get('title', 'No Title')}")
-            print(f"    Source: {article.get('source', {}).get('name', 'Unknown')}\n")
-            
-        return articles
-    except Exception as e:
-        print(f"❌ Error fetching top headlines: {e}")
+    """Fetches and displays top 3 breaking news headlines."""
+    print("\n" + "=" * 50)
+    print("           TODAY'S TOP HEADLINES 🌐")
+    print("=" * 50)
+    
+    articles = fetch_news_from_api("top-headlines", {"country": "us", "pageSize": 3})
+    
+    if not articles:
+        print("No headlines retrieved.")
         return []
+
+    print_article_list(articles)
+    return articles
 
 
 def browse_by_category():
-    """Prompts the user for a category search term (q) and fetches news."""
+    """Prompts for category, normalizes case, validates, and fetches articles."""
     print("\n" + "=" * 50)
     print("             BROWSE BY CATEGORY 🏷️")
     print("=" * 50)
-    category = input("Enter a topic or category (e.g., technology, sports, business): ").strip()
+    print(f"Available Categories: {', '.join(VALID_CATEGORIES)}")
     
-    if not category:
-        print("❌ Category cannot be empty.")
+    user_input = input("\nEnter category: ").strip().lower()
+    
+    if user_input not in VALID_CATEGORIES:
+        print(f"❌ '{user_input}' is not a valid category. Choose from the list above.")
         return []
 
-    url = f"{BASE_URL}/top-headlines"
-    params = {
-        "q": category,
-        "pageSize": 5,
-        "apiKey": API_KEY
-    }
+    articles = fetch_news_from_api("top-headlines", {"category": user_input, "country": "us", "pageSize": 5})
     
-    try:
-        response = requests.get(url, params=params)
-        data = response.json()
-        articles = data.get("articles", [])
-        
-        if not articles:
-            print(f"No articles found for category '{category}'.")
-            return []
-
-        print(f"\nFound {len(articles)} articles for '{category}':\n")
-        for idx, article in enumerate(articles, start=1):
-            print(f"[{idx}] {article.get('title', 'No Title')}")
-            print(f"    Source: {article.get('source', {}).get('name', 'Unknown')}\n")
-            
-        return articles
-    except Exception as e:
-        print(f"❌ Error fetching category news: {e}")
+    if not articles:
+        print(f"No articles found for category '{user_input}'.")
         return []
+
+    print(f"\nFound {len(articles)} articles under '{user_input}':\n")
+    print_article_list(articles)
+    return articles
 
 
 def search_by_date_time():
-    """Queries everything endpoint filtered by a query and YYYY-MM-DD dates."""
+    """Queries everything endpoint filtered by a query keyword and YYYY-MM-DD dates."""
     print("\n" + "=" * 50)
     print("         SEARCH BY DATE / TIMEFRAME 📅")
     print("=" * 50)
@@ -98,85 +115,78 @@ def search_by_date_time():
     from_date = input("Enter start date (YYYY-MM-DD): ").strip()
     to_date = input("Enter end date (YYYY-MM-DD): ").strip()
 
-    url = f"{BASE_URL}/everything"
+    if not query or not from_date or not to_date:
+        print("❌ Keyword, start date, and end date are all required.")
+        return []
+
     params = {
         "q": query,
         "from": from_date,
         "to": to_date,
         "sortBy": "publishedAt",
-        "pageSize": 5,
-        "apiKey": API_KEY
+        "pageSize": 5
     }
     
-    try:
-        response = requests.get(url, params=params)
-        data = response.json()
-        
-        if data.get("status") == "error":
-            print(f"❌ API Error: {data.get('message')}")
-            return []
-            
-        articles = data.get("articles", [])
-        
-        if not articles:
-            print("No articles found matching that date range.")
-            return []
-
-        print(f"\nFound {len(articles)} articles from {from_date} to {to_date}:\n")
-        for idx, article in enumerate(articles, start=1):
-            print(f"[{idx}] {article.get('title', 'No Title')}")
-            print(f"    Published At: {article.get('publishedAt', 'N/A')}\n")
-            
-        return articles
-    except Exception as e:
-        print(f"❌ Error searching by date: {e}")
+    articles = fetch_news_from_api("everything", params)
+    
+    if not articles:
+        print("No articles found matching criteria.")
         return []
+
+    print(f"\nFound {len(articles)} articles from {from_date} to {to_date}:\n")
+    print_article_list(articles)
+    return articles
 
 
 # ==========================================
 # LOCAL STORAGE (JSON) FUNCTIONS
 # ==========================================
 def load_saved_articles_from_file():
-    """Helper function to load articles list from JSON file safely."""
+    """Reads articles from local JSON storage safely."""
     if not os.path.exists(SAVED_ARTICLES_FILE):
         return []
     try:
         with open(SAVED_ARTICLES_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"⚠️ Error reading saved file: {e}")
         return []
 
 
 def save_article(article):
-    """Saves an article dictionary into saved_news.json."""
+    """Appends an article to JSON storage avoiding duplicates."""
     saved = load_saved_articles_from_file()
     
-    # Avoid duplicate saves
-    for item in saved:
-        if item.get("url") == article.get("url"):
-            print("ℹ️ Article is already saved.")
-            return
+    if any(item.get("url") == article.get("url") for item in saved):
+        print("ℹ️ Article is already saved.")
+        return
 
     saved.append(article)
-    with open(SAVED_ARTICLES_FILE, "w", encoding="utf-8") as f:
-        json.dump(saved, f, indent=4)
-    print("✓ Article saved successfully!")
+    try:
+        with open(SAVED_ARTICLES_FILE, "w", encoding="utf-8") as f:
+            json.dump(saved, f, indent=4)
+        print("✓ Article saved successfully!")
+    except OSError as e:
+        print(f"❌ Failed to save article to file: {e}")
 
 
 def delete_article(article_index):
-    """Deletes an article from saved_news.json by 0-based index."""
+    """Deletes an article from storage by index."""
     saved = load_saved_articles_from_file()
     if 0 <= article_index < len(saved):
         removed = saved.pop(article_index)
-        with open(SAVED_ARTICLES_FILE, "w", encoding="utf-8") as f:
-            json.dump(saved, f, indent=4)
-        print(f"✓ Removed article: '{removed.get('title')}'")
+        try:
+            with open(SAVED_ARTICLES_FILE, "w", encoding="utf-8") as f:
+                json.dump(saved, f, indent=4)
+            print(f"✓ Removed article: '{removed.get('title')}'")
+        except OSError as e:
+            print(f"❌ Failed to update storage: {e}")
     else:
-        print("❌ Invalid article index.")
+        print("❌ Invalid article selection.")
 
 
 def saved_articles():
-    """Views saved articles and handles article deletion operations."""
+    """Saved articles menu interface."""
     while True:
         saved = load_saved_articles_from_file()
         print("\n" + "=" * 50)
@@ -188,10 +198,9 @@ def saved_articles():
             input("\nPress Enter to return to Main Menu...")
             break
 
-        for idx, article in enumerate(saved, start=1):
-            print(f"[{idx}] {article.get('title')}")
+        print_article_list(saved)
 
-        print("\n" + "-" * 50)
+        print("-" * 50)
         print("[ SAVED ARTICLES ACTIONS ]")
         print("1. 🗑️ Delete a Saved Article")
         print("2. 🔊 Read a Saved Article Aloud")
@@ -200,22 +209,14 @@ def saved_articles():
         
         choice = input("Enter choice (1-3): ").strip()
         
-        if choice == "1":
-            try:
-                item_num = int(input(f"Enter article number to delete (1-{len(saved)}): "))
-                delete_article(item_num - 1)
-            except ValueError:
-                print("❌ Invalid number input.")
-        elif choice == "2":
-            try:
-                item_num = int(input(f"Enter article number to queue for reading (1-{len(saved)}): "))
-                if 1 <= item_num <= len(saved):
-                    add_to_speech_queue(saved[item_num - 1])
-                    play_speech_queue()
+        if choice in ("1", "2"):
+            selected_num = get_user_choice_in_range("Enter article number: ", 1, len(saved))
+            if selected_num is not None:
+                if choice == "1":
+                    delete_article(selected_num - 1)
                 else:
-                    print("❌ Invalid article choice.")
-            except ValueError:
-                print("❌ Invalid number input.")
+                    add_to_speech_queue(saved[selected_num - 1])
+                    play_speech_queue()
         elif choice == "3":
             break
         else:
@@ -226,42 +227,30 @@ def saved_articles():
 # TEXT-TO-SPEECH QUEUE ENGINE
 # ==========================================
 def add_to_speech_queue(article):
-    """Appends an article to the speech lineup."""
+    """Appends an article to speech queue."""
     speech_queue.append(article)
     print(f"✓ Queued for reading: '{article.get('title')}'")
 
 
-def print_current_article(article):
-    """Displays the current article details being spoken."""
-    print("\n" + "-" * 50)
-    print(f"🔊 NOW READING: {article.get('title')}")
-    print(f"Source: {article.get('source', {}).get('name', 'Unknown')}")
-    print("-" * 50)
-    print(f"{article.get('description', 'No description available.')}\n")
-
-
 def play_speech_queue():
-    """Processes all queued articles sequentially via Windows SpVoice."""
+    """Processes queued articles sequentially via Windows SpVoice."""
     if not speech_queue:
-        print("The speech queue is currently empty!")
+        print("The speech queue is empty!")
         return
 
     try:
         speaker = win32com.client.Dispatch("SAPI.SpVoice")
-        print(f"\nStarting playback for {len(speech_queue)} queued article(s)...")
+        print(f"\nPlaying {len(speech_queue)} article(s)...")
         
         while speech_queue:
-            # First-In, First-Out (FIFO) queue processing
-            current_article = speech_queue.pop(0)
-            print_current_article(current_article)
+            article = speech_queue.pop(0)
+            title = article.get('title', 'No Title')
+            desc = article.get('description', 'No description available.')
             
-            title = current_article.get('title', '')
-            description = current_article.get('description', '')
-            text_to_speak = f"{title}. {description}"
+            print(f"\n🔊 NOW READING: {title}\n{desc}\n")
+            speaker.Speak(f"{title}. {desc}")
             
-            speaker.Speak(text_to_speak)
-            
-        print("✓ Speech queue playback complete!")
+        print("✓ Playback complete!")
     except Exception as e:
         print(f"❌ Text-to-speech error: {e}")
 
@@ -270,7 +259,7 @@ def play_speech_queue():
 # INTERACTIVE ACTION SUB-MENU
 # ==========================================
 def handle_article_actions(articles):
-    """Sub-menu allowing users to save or read from current active list."""
+    """Sub-menu allowing users to perform actions on currently listed articles."""
     if not articles:
         return
 
@@ -284,27 +273,14 @@ def handle_article_actions(articles):
         
         choice = input("Enter choice (1-3): ").strip()
         
-        if choice == "1":
-            try:
-                num = int(input(f"Which article number to read? (1-{len(articles)}): "))
-                if 1 <= num <= len(articles):
-                    add_to_speech_queue(articles[num - 1])
+        if choice in ("1", "2"):
+            selected_num = get_user_choice_in_range("Which article number? ", 1, len(articles))
+            if selected_num is not None:
+                if choice == "1":
+                    add_to_speech_queue(articles[selected_num - 1])
                     play_speech_queue()
                 else:
-                    print("❌ Choice out of range.")
-            except ValueError:
-                print("❌ Enter a valid integer.")
-                
-        elif choice == "2":
-            try:
-                num = int(input(f"Which article number to save? (1-{len(articles)}): "))
-                if 1 <= num <= len(articles):
-                    save_article(articles[num - 1])
-                else:
-                    print("❌ Choice out of range.")
-            except ValueError:
-                print("❌ Enter a valid integer.")
-                
+                    save_article(articles[selected_num - 1])
         elif choice == "3":
             break
         else:
@@ -312,7 +288,7 @@ def handle_article_actions(articles):
 
 
 # ==========================================
-# MAIN ROUTINE & APPLICATION LOOP
+# MAIN APPLICATION LOOP
 # ==========================================
 def main():
     while True:
@@ -327,29 +303,21 @@ def main():
         print("5. ❌ Exit")
         print("-" * 50)
 
-        choice = input("Enter your choice (1-5): ").strip()
+        choice = input("Enter choice (1-5): ").strip()
 
         if choice == "1":
-            current_articles = today_top_headlines()
-            handle_article_actions(current_articles)
-
+            handle_article_actions(today_top_headlines())
         elif choice == "2":
-            current_articles = browse_by_category()
-            handle_article_actions(current_articles)
-
+            handle_article_actions(browse_by_category())
         elif choice == "3":
-            current_articles = search_by_date_time()
-            handle_article_actions(current_articles)
-
+            handle_article_actions(search_by_date_time())
         elif choice == "4":
             saved_articles()
-
         elif choice == "5":
             print("\nThank you for using Ayush News House! Goodbye. 👋")
             break
-
         else:
-            print("❌ Invalid input. Please enter a number between 1 and 5.")
+            print("❌ Invalid choice. Please enter a number between 1 and 5.")
 
 
 if __name__ == "__main__":
