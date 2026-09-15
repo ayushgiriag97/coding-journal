@@ -1,9 +1,12 @@
 from winotify import Notification
 import win32com.client
+import pythoncom   
+from datetime import datetime
 import time
-from datetime import datetime, timedelta
+import threading
 
 reminders = []
+voice_index = 0  # default voice
 
 def add_reminder():
     user_name = input("Enter your name: ").strip()
@@ -11,106 +14,158 @@ def add_reminder():
         print("❌ Name cannot be empty.")
         return
 
-    title = input("Enter notification title: ").strip()
+    title = input("Enter reminder title: ").strip()
     if not title:
         print("❌ Title cannot be empty.")
         return
 
-    message = input("Enter notification message (optional): ").strip()
-
-    reminder_time = input("Enter reminder time (HH:MM, 24hr format). Example: 14:30 for 2:30 PM: ").strip()
+    time_str = input("Enter reminder time (HH:MM, 24hr format, e.g. 14:30): ").strip()
     try:
-        reminder_time_obj = datetime.strptime(reminder_time, "%H:%M").time()
+        reminder_time = datetime.strptime(time_str, "%H:%M").time()
     except ValueError:
-        print("❌ Invalid time format. Please use HH:MM (24hr). Example: 14:30")
+        print("❌ Invalid time format. Use HH:MM (24hr).")
         return
 
-    recurrence = input("Repeat? (none/daily/weekly): ").strip().lower()
-    # Prevent duplicate reminders
-    for r in reminders:
-        if r[1] == title and r[3] == reminder_time_obj:
-            print("⚠️ Duplicate reminder detected. Skipping.")
-            return
-
-    reminders.append((user_name, title, message, reminder_time_obj, recurrence))
-    print(f"✅ Reminder '{title}' set for {reminder_time_obj.strftime('%H:%M')}")
+    message = input("Enter reminder message (optional): ").strip()
+    reminders.append({
+        "user": user_name,
+        "title": title,
+        "time": reminder_time,
+        "message": message,
+        "voice": voice_index
+    })
+    print(f"✅ Reminder '{title}' set for {time_str}")
 
 def view_reminders():
     if not reminders:
         print("📭 No reminders scheduled.")
         return
     print("\n📋 Current Reminders:")
-    for i, (user_name, title, message, reminder_time_obj, recurrence) in enumerate(reminders, 1):
-        print(f"{i}) {title} at {reminder_time_obj.strftime('%H:%M')} ({recurrence})")
+    for i, r in enumerate(reminders, 1):
+        print(f"{i}) {r['title']} at {r['time'].strftime('%H:%M')} "
+              f"(Voice {r['voice']}) - {r['message'] if r['message'] else 'No message'}")
 
-def cancel_reminder():
-    view_reminders()
+    choice = input("\nDo you want to edit a reminder?\nEnter number or press Enter to skip: ").strip()
+    if choice.isdigit():
+        idx = int(choice) - 1
+        if 0 <= idx < len(reminders):
+            edit_reminder(idx)
+        else:
+            print("❌ Invalid choice.")
+
+def edit_reminder(idx):
+    r = reminders[idx]
+    print(f"\n✏️ Editing reminder '{r['title']}'")
+    new_title = input(f"Enter new title (or press Enter to keep '{r['title']}'): ").strip()
+    if new_title:
+        r['title'] = new_title
+
+    new_message = input(f"Enter new message (or press Enter to keep current): ").strip()
+    if new_message:
+        r['message'] = new_message
+
+    new_time = input(f"Enter new time (HH:MM) or press Enter to keep {r['time'].strftime('%H:%M')}: ").strip()
+    if new_time:
+        try:
+            r['time'] = datetime.strptime(new_time, "%H:%M").time()
+        except ValueError:
+            print("❌ Invalid time format. Keeping old time.")
+
+    print(f"✅ Reminder updated: {r['title']} at {r['time'].strftime('%H:%M')}")
+
+def delete_reminder():
     if not reminders:
+        print("📭 No reminders to delete.")
         return
-    choice = input("Enter the number of the reminder to cancel: ").strip()
+    print("\n🗑️ Reminders:")
+    for i, r in enumerate(reminders, 1):
+        print(f"{i}) {r['title']} at {r['time'].strftime('%H:%M')}")
+    choice = input("Enter the number of the reminder to delete: ").strip()
     if choice.isdigit():
         idx = int(choice) - 1
         if 0 <= idx < len(reminders):
             removed = reminders.pop(idx)
-            print(f"❌ Reminder '{removed[1]}' cancelled.")
+            print(f"❌ Reminder '{removed['title']}' deleted.")
         else:
             print("❌ Invalid choice.")
     else:
         print("❌ Please enter a valid number.")
 
-def show_reminder(user_name, title, message):
-    toast = Notification(app_id="RemindMe Ayush", title=title, msg=message if message else title)
+def change_voice():
+    global voice_index
+    speaker = win32com.client.Dispatch("SAPI.SpVoice")
+    voices = speaker.GetVoices()
+    print("\n🎤 Available voices:")
+    for i in range(voices.Count):
+        print(f"{i}) {voices.Item(i).GetDescription()}")
+    choice = input("Choose voice number (default 0): ").strip()
+    try:
+        choice = int(choice)
+    except ValueError:
+        choice = 0
+    if 0 <= choice < voices.Count:
+        voice_index = choice
+        print(f"✅ Voice changed to {voices.Item(choice).GetDescription()}")
+    else:
+        print("❌ Invalid choice, using default voice.")
+
+def show_reminder(r):
+    # Popup notification
+    toast = Notification(
+        app_id="RemindMe Ayush",
+        title=r['title'],
+        msg=r['message'] if r['message'] else r['title']
+    )
     toast.show()
 
+    # Voice reads popup content (COM init required in thread)
+    pythoncom.CoInitialize()
     speaker = win32com.client.Dispatch("SAPI.SpVoice")
-    if message:
-        speaker.Speak(f"Hello {user_name}, your reminder is: {message}")
-    else:
-        speaker.Speak(f"Hello {user_name}, your reminder is: {title}")
+    voices = speaker.GetVoices()
+    if 0 <= r['voice'] < voices.Count:
+        speaker.Voice = voices.Item(r['voice'])
+
+    msg = r['message'] if r['message'] else r['title']
+    speaker.Speak(f"Hello {r['user']}, it’s {r['time'].strftime('%H:%M')}, your reminder is: {msg}")
+    pythoncom.CoUninitialize()
 
 def run_scheduler():
-    while reminders:
-        now = datetime.now()
-        for i, (user_name, title, message, reminder_time_obj, recurrence) in enumerate(reminders):
-            if now.hour == reminder_time_obj.hour and now.minute == reminder_time_obj.minute:
-                show_reminder(user_name, title, message)
+    while True:
+        if reminders:
+            now = datetime.now()
+            due = [r for r in reminders if now.hour == r['time'].hour and now.minute == r['time'].minute]
+            for r in due:
+                show_reminder(r)
+                reminders.remove(r)
+        time.sleep(1)
 
-                snooze = input("Snooze? Enter minutes or press Enter to skip: ").strip()
-                if snooze.isdigit():
-                    snooze_time = now + timedelta(minutes=int(snooze))
-                    reminders[i] = (user_name, title, message, snooze_time.time(), recurrence)
-                    print(f"🔔 Snoozed for {snooze} minutes.")
-                    continue
-
-                if recurrence == "daily":
-                    next_time = (now + timedelta(days=1)).time()
-                    reminders[i] = (user_name, title, message, next_time, recurrence)
-                elif recurrence == "weekly":
-                    next_time = (now + timedelta(weeks=1)).time()
-                    reminders[i] = (user_name, title, message, next_time, recurrence)
-                else:
-                    reminders.pop(i)
-                break
-        time.sleep(30)
+def show_menu():
+    print("\n" + "═" * 40)
+    print("📌  Reminder Menu".center(40))
+    print("═" * 40)
+    print("1)  Add reminder ➕")
+    print("2)  View reminders 👀")
+    print("3)  Delete reminder ❌")
+    print("4)  Change voice 🎤")
+    print("5)  Exit 🚪")
+    print("═" * 40)
+    choice = input("👉 Choose an option: ").strip()
+    return choice
 
 def main():
-    while True:
-        print("\n📌 Reminder Menu")
-        print("1) Add reminder")
-        print("2) View reminders")
-        print("3) Cancel reminder")
-        print("4) Start scheduler")
-        print("5) Exit")
+    # Start scheduler in background thread
+    threading.Thread(target=run_scheduler, daemon=True).start()
 
-        choice = input("Choose an option: ").strip()
+    while True:
+        choice = show_menu()
         if choice == "1":
             add_reminder()
         elif choice == "2":
             view_reminders()
         elif choice == "3":
-            cancel_reminder()
+            delete_reminder()
         elif choice == "4":
-            run_scheduler()
+            change_voice()
         elif choice == "5":
             print("👋 Exiting Reminder App.")
             break
