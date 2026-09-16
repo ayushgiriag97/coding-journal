@@ -17,7 +17,15 @@ def add_expenses(data,description,category,amount):
         print("Data is saved")
 
 def view_expenses():
-    pass
+    print(f"{'Date':<12}{'Description':<15}{'Category':<15}{'Amount':<10}")
+    print("-" * 55) 
+    with open(SPENDING_DATA, "r", encoding="utf-8") as file:
+        for line in file:
+            line = line.strip()
+            if line:
+                parts = [p.strip() for p in line.split(",")]
+                date_out, description_out, category_out, amount_out = parts
+                print(f"{date_out:<12}{description_out:<15}{category_out:<15}Rs.{amount_out:<10}")
 
 def filter_spending():
     pass
@@ -30,3 +38,4 @@ def category_analysis():
 
 
 add_expenses(date_in,description_in,category_in,amount_in)
+view_expenses()
